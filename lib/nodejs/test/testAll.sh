@@ -177,8 +177,8 @@ testWSClientServer binary framed --ssl || TESTOK=1
 
 if [ -n "${COVER}" ]; then
   ${DIR}/../node_modules/.bin/istanbul report --include "${DIR}/../coverage/report*/coverage.json" lcov cobertura
-  #rm -r ${DIR}/../coverage/report*/*
-  #rmdir ${DIR}/../coverage/report*
+  rm -r ${DIR}/../coverage/report*/*
+  rmdir ${DIR}/../coverage/report*
 fi
 
 exit $TESTOK
