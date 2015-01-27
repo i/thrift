@@ -97,33 +97,6 @@ testHttpClientServer()
   return $RET
 }
 
-<<<<<<< HEAD
-=======
-testWSClientServer()
-{
-  echo "   Testing WebSocket Client/Server with protocol $1 and transport $2 $3";
-  RET=0
-  if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/http_server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
-    ((COUNT++))
-  else
-    node ${DIR}/http_server.js -p $1 -t $2 $3 &
-  fi
-  SERVERPID=$!
-  sleep 1
-  if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/ws_client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
-    ((COUNT++))
-  else
-    node ${DIR}/ws_client.js -p $1 -t $2 $3 || RET=1
-  fi
-
-  kill -2 $SERVERPID || RET=1
-  sleep 1
-}
-
->>>>>>> 7989029... Add test coverage
-
 TESTOK=0
 
 #generating thrift code
