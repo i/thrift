@@ -19,7 +19,13 @@
 # under the License.
 #
 
+if [ -n "${1}" ]; then
+  COVER=${1};
+fi
+
 DIR="$( cd "$( dirname "$0" )" && pwd )"
+
+COUNT=0
 
 export NODE_PATH="${DIR}:${DIR}/../lib:${NODE_PATH}"
 
@@ -27,11 +33,21 @@ testClientServer()
 {
   echo "   Testing Client/Server with protocol $1 and transport $2 $3";
   RET=0
-  node ${DIR}/server.js -p $1 -t $2 $3 &
+  if [ -n "${COVER}" ]; then
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
+    ((COUNT++))
+  else
+    node ${DIR}/server.js -p $1 -t $2 $3 &
+  fi
   SERVERPID=$!
   sleep 1
-  node ${DIR}/client.js -p $1 -t $2 $3 || RET=1
-  kill -9 $SERVERPID || RET=1
+  if [ -n "${COVER}" ]; then
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
+    ((COUNT++))
+  else
+    node ${DIR}/client.js -p $1 -t $2 $3 || RET=1
+  fi
+  kill -2 $SERVERPID || RET=1
   return $RET
 }
 
@@ -39,11 +55,21 @@ testMultiplexedClientServer()
 {
   echo "   Testing Multiplexed Client/Server with protocol $1 and transport $2 $3";
   RET=0
-  node ${DIR}/multiplex_server.js -p $1 -t $2 $3 &
+  if [ -n "${COVER}" ]; then
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/multiplex_server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
+    ((COUNT++))
+  else
+    node ${DIR}/multiplex_server.js -p $1 -t $2 $3 &
+  fi
   SERVERPID=$!
   sleep 1
-  node ${DIR}/multiplex_client.js -p $1 -t $2 $3 || RET=1
-  kill -9 $SERVERPID || RET=1
+  if [ -n "${COVER}" ]; then
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/multiplex_client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
+    ((COUNT++))
+  else
+    node ${DIR}/multiplex_client.js -p $1 -t $2 $3 || RET=1
+  fi
+  kill -2 $SERVERPID || RET=1
   return $RET
 }
 
@@ -51,14 +77,25 @@ testHttpClientServer()
 {
   echo "   Testing HTTP Client/Server with protocol $1 and transport $2 $3";
   RET=0
-  node ${DIR}/http_server.js -p $1 -t $2 $3 &
+  if [ -n "${COVER}" ]; then
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/http_server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
+    ((COUNT++))
+  else
+    node ${DIR}/http_server.js -p $1 -t $2 $3 &
+  fi
   SERVERPID=$!
   sleep 1
-  node ${DIR}/http_client.js -p $1 -t $2 $3 || RET=1
-  kill -9 $SERVERPID || RET=1
+  if [ -n "${COVER}" ]; then
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/http_client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
+    ((COUNT++))
+  else
+    node ${DIR}/http_client.js -p $1 -t $2 $3 || RET=1
+  fi
+
+  kill -2 $SERVERPID || RET=1
+  sleep 1
   return $RET
 }
-
 
 TESTOK=0
 
@@ -103,5 +140,11 @@ testHttpClientServer binary buffered || TESTOK=1
 testHttpClientServer binary framed || TESTOK=1
 testHttpClientServer json buffered --promise || TESTOK=1
 testHttpClientServer binary framed --ssl || TESTOK=1
+
+if [ -n "${COVER}" ]; then
+  ${DIR}/../node_modules/.bin/istanbul report --include "${DIR}/../coverage/report*/coverage.json" lcov cobertura
+  rm -r ${DIR}/../coverage/report*/*
+  rmdir ${DIR}/../coverage/report*
+fi
 
 exit $TESTOK
