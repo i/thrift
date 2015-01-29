@@ -1,6 +1,5 @@
 #! /bin/sh
 
-
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements. See the NOTICE file
 # distributed with this work for additional information
@@ -17,7 +16,6 @@
 # KIND, either express or implied. See the License for the
 # specific language governing permissions and limitations
 # under the License.
-#
 
 if [ -n "${1}" ]; then
   COVER=${1};
@@ -29,71 +27,25 @@ COUNT=0
 
 export NODE_PATH="${DIR}:${DIR}/../lib:${NODE_PATH}"
 
-testClientServer()
+testServer()
 {
-  echo "   Testing Client/Server with protocol $1 and transport $2 $3";
+  echo "   Testing $1 Client/Server with protocol $2 and transport $3 $4";
   RET=0
   if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- --type $1 -p $2 -t $3 $4 &
     ((COUNT++))
   else
-    node ${DIR}/server.js -p $1 -t $2 $3 &
+    node ${DIR}/server.js --type $1 -p $2 -t $3 $4 &
   fi
   SERVERPID=$!
   sleep 1
   if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
+    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/client.js --dir ${DIR}/../coverage/report${COUNT} -- --type $1 -p $2 -t $3 $4 || RET=1
     ((COUNT++))
   else
-    node ${DIR}/client.js -p $1 -t $2 $3 || RET=1
+    node ${DIR}/client.js --type $1 -p $2 -t $3 $4 || RET=1
   fi
   kill -2 $SERVERPID || RET=1
-  return $RET
-}
-
-testMultiplexedClientServer()
-{
-  echo "   Testing Multiplexed Client/Server with protocol $1 and transport $2 $3";
-  RET=0
-  if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/multiplex_server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
-    ((COUNT++))
-  else
-    node ${DIR}/multiplex_server.js -p $1 -t $2 $3 &
-  fi
-  SERVERPID=$!
-  sleep 1
-  if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/multiplex_client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
-    ((COUNT++))
-  else
-    node ${DIR}/multiplex_client.js -p $1 -t $2 $3 || RET=1
-  fi
-  kill -2 $SERVERPID || RET=1
-  return $RET
-}
-
-testHttpClientServer()
-{
-  echo "   Testing HTTP Client/Server with protocol $1 and transport $2 $3";
-  RET=0
-  if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/http_server.js --dir ${DIR}/../coverage/report${COUNT} --handle-sigint -- -p $1 -t $2 $3 &
-    ((COUNT++))
-  else
-    node ${DIR}/http_server.js -p $1 -t $2 $3 &
-  fi
-  SERVERPID=$!
-  sleep 1
-  if [ -n "${COVER}" ]; then
-    ${DIR}/../node_modules/.bin/istanbul cover ${DIR}/http_client.js --dir ${DIR}/../coverage/report${COUNT} -- -p $1 -t $2 $3 || RET=1
-    ((COUNT++))
-  else
-    node ${DIR}/http_client.js -p $1 -t $2 $3 || RET=1
-  fi
-
-  kill -2 $SERVERPID || RET=1
-  sleep 1
   return $RET
 }
 
@@ -110,36 +62,36 @@ node ${DIR}/binary.test.js || TESTOK=1
 #integration tests
 
 #TCP connection tests
-testClientServer compact buffered || TESTOK=1
-testClientServer compact framed || TESTOK=1
-testClientServer binary buffered || TESTOK=1
-testClientServer json buffered || TESTOK=1
-testClientServer binary framed || TESTOK=1
-testClientServer json framed || TESTOK=1
+testServer tcp compact buffered || TESTOK=1
+testServer tcp compact framed || TESTOK=1
+testServer tcp binary buffered || TESTOK=1
+testServer tcp json buffered || TESTOK=1
+testServer tcp binary framed || TESTOK=1
+testServer tcp json framed || TESTOK=1
 
-#tests for multiplexed services
-testMultiplexedClientServer binary buffered || TESTOK=1
-testMultiplexedClientServer json buffered || TESTOK=1
-testMultiplexedClientServer binary framed || TESTOK=1
-testMultiplexedClientServer compact framed || TESTOK=1
+# #tests for multiplexed services
+testServer multiplex binary buffered || TESTOK=1
+testServer multiplex json buffered || TESTOK=1
+testServer multiplex binary framed || TESTOK=1
+testServer multiplex compact framed || TESTOK=1
 
-#test ssl connection
-testClientServer binary framed --ssl || TESTOK=1
-testMultiplexedClientServer binary framed --ssl || TESTOK=1
+# #test ssl connection
+testServer tcp binary framed --ssl || TESTOK=1
+testServer multiplex binary framed --ssl || TESTOK=1
 
-#test promise style
-testClientServer binary framed --promise || TESTOK=1
-testClientServer compact buffered --promise || TESTOK=1
+# #test promise style
+testServer tcp binary framed --promise || TESTOK=1
+testServer tcp compact buffered --promise || TESTOK=1
 
-#HTTP tests
-testHttpClientServer compact buffered || TESTOK=1
-testHttpClientServer compact framed || TESTOK=1
-testHttpClientServer json buffered || TESTOK=1
-testHttpClientServer json framed || TESTOK=1
-testHttpClientServer binary buffered || TESTOK=1
-testHttpClientServer binary framed || TESTOK=1
-testHttpClientServer json buffered --promise || TESTOK=1
-testHttpClientServer binary framed --ssl || TESTOK=1
+# #HTTP tests
+testServer http compact buffered || TESTOK=1
+testServer http compact framed || TESTOK=1
+testServer http json buffered || TESTOK=1
+testServer http json framed || TESTOK=1
+testServer http binary buffered || TESTOK=1
+testServer http binary framed || TESTOK=1
+testServer http json buffered --promise || TESTOK=1
+testServer http binary framed --ssl || TESTOK=1
 
 if [ -n "${COVER}" ]; then
   ${DIR}/../node_modules/.bin/istanbul report --include "${DIR}/../coverage/report*/coverage.json" lcov cobertura
