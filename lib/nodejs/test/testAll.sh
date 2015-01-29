@@ -61,37 +61,20 @@ node ${DIR}/binary.test.js || TESTOK=1
 
 #integration tests
 
-#TCP connection tests
-testServer tcp compact buffered || TESTOK=1
-testServer tcp compact framed || TESTOK=1
-testServer tcp binary buffered || TESTOK=1
-testServer tcp json buffered || TESTOK=1
-testServer tcp binary framed || TESTOK=1
-testServer tcp json framed || TESTOK=1
+for type in tcp multiplex http
+do
 
-# #tests for multiplexed services
-testServer multiplex binary buffered || TESTOK=1
-testServer multiplex json buffered || TESTOK=1
-testServer multiplex binary framed || TESTOK=1
-testServer multiplex compact framed || TESTOK=1
+  for protocol in compact binary json
+  do
 
-# #test ssl connection
-testServer tcp binary framed --ssl || TESTOK=1
-testServer multiplex binary framed --ssl || TESTOK=1
-
-# #test promise style
-testServer tcp binary framed --promise || TESTOK=1
-testServer tcp compact buffered --promise || TESTOK=1
-
-# #HTTP tests
-testServer http compact buffered || TESTOK=1
-testServer http compact framed || TESTOK=1
-testServer http json buffered || TESTOK=1
-testServer http json framed || TESTOK=1
-testServer http binary buffered || TESTOK=1
-testServer http binary framed || TESTOK=1
-testServer http json buffered --promise || TESTOK=1
-testServer http binary framed --ssl || TESTOK=1
+    for transport in buffered framed
+    do
+      testServer $type $protocol $transport || TESTOK=1
+      testServer $type $protocol $transport --ssl || TESTOK=1
+      testServer $type $protocol $transport --promise || TESTOK=1
+    done
+  done
+done
 
 if [ -n "${COVER}" ]; then
   ${DIR}/../node_modules/.bin/istanbul report --include "${DIR}/../coverage/report*/coverage.json" lcov cobertura
