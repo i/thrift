@@ -32,7 +32,8 @@
   "dependencies": {
     "node-int64": "~0.3.0",
     "q": "1.0.x",
-    "ws": "~0.4.32"
+    "ws": "~0.4.32",
+    "cors": "~2.5.3"
   },
   "devDependencies": {
     "commander": "2.1.x",
