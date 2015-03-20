@@ -162,6 +162,9 @@ class TBufferedTransport(TTransportBase, CReadableTransport):
   def write(self, buf):
     self.__wbuf.write(buf)
 
+  def clear_write_buffer(self):
+    self.__wbuf = StringIO()
+
   def flush(self):
     out = self.__wbuf.getvalue()
     # reset wbuf before write/flush to preserve state on underlying failure
