@@ -414,14 +414,25 @@ output_val(PyObject* output, PyObject* value, TType type, PyObject* typeargs) {
   }
 
   case T_STRING: {
-    Py_ssize_t len = PyString_Size(value);
+    Py_ssize_t len;
+    PyObject* str_value;
+    if (typeargs == &PyUnicode_Type && PyUnicode_Check(value)) {
+      str_value = PyUnicode_AsUTF8String(value);
+      len = PyString_Size(str_value);
+    } else {
+      str_value = value;
+    }
 
+    len = PyString_Size(str_value);
     if (!check_ssize_t_32(len)) {
       return false;
     }
 
     writeI32(output, (int32_t) len);
-    PycStringIO->cwrite(output, PyString_AsString(value), (int32_t) len);
+    PycStringIO->cwrite(output, PyString_AsString(str_value), (int32_t) len);
+    if (str_value != value) {  // we must have allocated a new thing
+      Py_DECREF(str_value);
+    }
     break;
   }
 
@@ -1009,7 +1020,11 @@ decode_val(DecodeBuffer* input, TType type, PyObject* typeargs) {
       return NULL;
     }
 
-    return PyString_FromStringAndSize(buf, len);
+    if (typeargs == &PyUnicode_Type) {
+      return PyUnicode_DecodeUTF8(buf, len, "");
+    } else {
+      return PyString_FromStringAndSize(buf, len);
+    }
   }
 
   case T_LIST:

@@ -241,6 +241,10 @@ class t_py_generator : public t_generator {
   std::string type_to_enum(t_type* ttype);
   std::string type_to_spec_args(t_type* ttype);
 
+  bool is_utf8_string(t_base_type* type) {
+    return gen_utf8strings_ && type->is_string() && !type->is_binary();
+  }
+
   static bool is_valid_namespace(const std::string& sub_namespace) {
     return sub_namespace == "twisted";
   }
@@ -683,6 +687,9 @@ void t_py_generator::generate_py_struct_definition(ofstream& out,
      name -> string_literal
      default -> None  # Handled by __init__
      spec_args -> None  # For simple types
+                | class_name # For strings (unicode or str)
+                             # (unicode implies utf-8 encoding on transport,
+                             # as Java does; enable by utf8strings on Python)
                 | (type_enum, spec_args)  # Value type for list/set
                 | (type_enum, spec_args, type_enum, spec_args)
                   # Key and value for map
@@ -2158,10 +2165,10 @@ void t_py_generator::generate_deserialize_field(ofstream &out,
           name;
         break;
       case t_base_type::TYPE_STRING:
-        if (((t_base_type*)type)->is_binary() || !gen_utf8strings_) {
-          out << "readString();";
-        } else {
+        if (is_utf8_string((t_base_type*)type)) {
           out << "readString().decode('utf-8')";
+        } else {
+          out << "readString();";
         }
         break;
       case t_base_type::TYPE_BOOL:
@@ -2356,10 +2363,10 @@ void t_py_generator::generate_serialize_field(ofstream &out,
           "compiler error: cannot serialize void field in a struct: " + name;
         break;
       case t_base_type::TYPE_STRING:
-        if (((t_base_type*)type)->is_binary() || !gen_utf8strings_) {
-          out << "writeString(" << name << ")";
-        } else {
+        if (is_utf8_string((t_base_type*)type)) {
           out << "writeString(" << name << ".encode('utf-8'))";
+        } else {
+          out << "writeString(" << name << ")";
         }
         break;
       case t_base_type::TYPE_BOOL:
@@ -2720,7 +2727,9 @@ string t_py_generator::type_to_spec_args(t_type* ttype) {
     ttype = ((t_typedef*)ttype)->get_type();
   }
 
-  if (ttype->is_base_type() || ttype->is_enum()) {
+  if (ttype->is_string()) {
+    return is_utf8_string((t_base_type*)ttype) ? "unicode" : "str";
+  } else if (ttype->is_base_type() || ttype->is_enum()) {
     return "None";
   } else if (ttype->is_struct() || ttype->is_xception()) {
     return "(" + type_name(ttype) + ", " + type_name(ttype) + ".thrift_spec)";
