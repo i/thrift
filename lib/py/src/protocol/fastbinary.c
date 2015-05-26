@@ -414,14 +414,6 @@ output_val(PyObject* output, PyObject* value, TType type, PyObject* typeargs) {
   }
 
   case T_STRING: {
-    bool is_unicode = PyUnicode_CheckExact(value);
-    if (is_unicode) {
-        value = PyUnicode_AsUTF8String(value);
-        if (value == NULL) {
-            PyErr_SetString(PyExc_TypeError, "can not encode using utf8");
-            return false;
-        }
-    }
     Py_ssize_t len = PyString_Size(value);
 
     if (!check_ssize_t_32(len)) {
@@ -430,10 +422,6 @@ output_val(PyObject* output, PyObject* value, TType type, PyObject* typeargs) {
 
     writeI32(output, (int32_t) len);
     PycStringIO->cwrite(output, PyString_AsString(value), (int32_t) len);
-
-    if (is_unicode) {
-        Py_DECREF(value);
-    }
     break;
   }
 
@@ -1021,7 +1009,7 @@ decode_val(DecodeBuffer* input, TType type, PyObject* typeargs) {
       return NULL;
     }
 
-    return PyUnicode_FromStringAndSize(buf, len);
+    return PyString_FromStringAndSize(buf, len);
   }
 
   case T_LIST:
